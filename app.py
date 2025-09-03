@@ -6,47 +6,37 @@ from pathlib import Path
 # ---------- Page config ----------
 st.set_page_config(
     page_title="EMAAR | AI + Concierge Hiring",
-    page_icon="assets/emaar-logo.png",   # favicon is fine to keep
+    page_icon="assets/emaar-logo.png",
     layout="wide"
 )
 
-# ---------- Theme tweaks / CSS ----------
+# ---------- Brand CSS ----------
 st.markdown("""
 <style>
-/* extra breathing space at the very top */
 .block-container { padding-top: 3.0rem; }
-
-/* headings + divider */
 h1, h2, h3 { color: #2B2B2B; }
 hr.gold { border: 0; border-top: 2px solid #D4AF37; margin: 0.5rem 0 1rem 0; }
-
-/* buttons */
-.stButton>button {
-  background: #D4AF37; color: #2B2B2B; border: 0; border-radius: 12px; padding: 0.5rem 1rem;
-}
-.stButton>button:hover { filter: brightness(0.95); }
-
-/* metric cards */
-[data-testid="stMetric"] { background: #F2E8D5; border-radius: 12px; padding: 0.75rem; }
-
-/* inputs */
-textarea, .stTextInput input { background: #FFFFFF !important; border-radius: 10px !important; }
+.stButton>button { background:#D4AF37; color:#2B2B2B; border:0; border-radius:12px; padding:0.5rem 1rem; }
+.stButton>button:hover { filter:brightness(0.95); }
+[data-testid="stMetric"] { background:#F2E8D5; border-radius:12px; padding:0.75rem; }
+textarea, .stTextInput input { background:#FFFFFF !important; border-radius:10px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- Robust logo + title ----------
+# ---------- Robust logo + title without deprecated flag ----------
 from pathlib import Path
 APP_DIR = Path(__file__).parent
-LOGO_PATH = APP_DIR / "assets" / "emaar-logo.png"   # <- exact path
-LOGO_HEIGHT = 72                                     # <- change this to resize
+LOGO_PATH = APP_DIR / "assets" / "emaar-logo.png"
+
+# Option A: fixed width that looks good on laptops
+LOGO_WIDTH = 180
 
 col_logo, col_title = st.columns([1, 6], vertical_alignment="center")
 with col_logo:
     if LOGO_PATH.exists():
-        st.image(str(LOGO_PATH), use_column_width=False, output_format="PNG", clamp=False, width=None)
-        # If you prefer to control by height, comment the line above and use:
-        # st.image(str(LOGO_PATH), use_column_width=False, output_format="PNG")
-        # Streamlit doesn't have a direct 'height' param; use width for scaling or a smaller source image.
+        st.image(str(LOGO_PATH), width=LOGO_WIDTH)        # no use_column_width here
+        # If you prefer it to grow to the column size, use the next line instead:
+        # st.image(str(LOGO_PATH), use_container_width=True)
     else:
         st.caption("Logo not found at assets/emaar-logo.png")
 
