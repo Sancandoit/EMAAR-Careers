@@ -6,66 +6,55 @@ from pathlib import Path
 # ---------- Page config ----------
 st.set_page_config(
     page_title="EMAAR | AI + Concierge Hiring",
-    page_icon="assets/emaar-logo.png",  # favicon uses the same logo
+    page_icon="assets/emaar-logo.png",
     layout="wide"
 )
 
 # ---------- Brand CSS (gold + beige) ----------
 st.markdown("""
 <style>
-/* Add a little more top padding so the header never looks cut */
-.block-container { padding-top: 2.25rem; }
+/* More breathing room at the very top so nothing looks cut */
+.block-container { padding-top: 3.0rem; }
 
-/* headings + dividers */
+/* headings + divider */
 h1, h2, h3 { color: #2B2B2B; }
-hr.gold { border: 0; border-top: 2px solid #D4AF37; margin: 0.5rem 0 1rem 0; }
+hr.gold { border: 0; border-top: 2px solid #D4AF37; margin: 0.5rem 0 1.0rem 0; }
 
 /* buttons */
 .stButton>button {
-  background: #D4AF37;
-  color: #2B2B2B;
-  border: 0;
-  border-radius: 12px;
-  padding: 0.5rem 1rem;
+  background: #D4AF37; color: #2B2B2B; border: 0; border-radius: 12px; padding: 0.5rem 1rem;
 }
 .stButton>button:hover { filter: brightness(0.95); }
 
 /* metric cards */
-[data-testid="stMetric"] {
-  background: #F2E8D5;
-  border-radius: 12px;
-  padding: 0.75rem;
-}
+[data-testid="stMetric"] { background: #F2E8D5; border-radius: 12px; padding: 0.75rem; }
 
 /* inputs */
-textarea, .stTextInput input {
-  background: #FFFFFF !important;
-  border-radius: 10px !important;
-}
+textarea, .stTextInput input { background: #FFFFFF !important; border-radius: 10px !important; }
 
-/* sidebar title color tweak */
-section[data-testid="stSidebar"] h2, 
-section[data-testid="stSidebar"] h1 {
-  color: #2B2B2B;
-}
+/* make sure header image never visually clips */
+.emaar-header img { display: block; padding-top: 6px; }  /* small top padding prevents perceived cropping */
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- Header with logo ----------
-logo_path = Path("assets/emaar-logo.png")
-header_col1, header_col2 = st.columns([1, 6])
+# ---------- Header (logo + title in one line) ----------
+LOGO_HEIGHT = 68  # <— increase/decrease to change logo size (e.g., 60–90)
 
-with header_col1:
-    if logo_path.exists():
-        st.image(str(logo_path), width=140)
-    else:
-        st.caption("Logo not found at assets/emaar-logo.png")
-
-with header_col2:
-    st.markdown("## AI + Concierge Hiring")
-    st.caption("Hospitality-grade candidate experience with transparent, auditable scoring.")
-
-st.markdown("<hr class='gold'/>", unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <div class="emaar-header" style="display:flex; align-items:center; gap:16px;">
+      <img src="assets/emaar-logo.png" height="{LOGO_HEIGHT}">
+      <div>
+        <h2 style="margin:0; color:#2B2B2B;">AI + Concierge Hiring</h2>
+        <div style="margin-top:2px; color:#6b6b6b;">
+          Hospitality-grade candidate experience with transparent, auditable scoring.
+        </div>
+      </div>
+    </div>
+    <hr class="gold"/>
+    """,
+    unsafe_allow_html=True
+)
 
 # ---------- Helpers ----------
 def clean_text(x: str) -> str:
