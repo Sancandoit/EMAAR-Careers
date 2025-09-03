@@ -134,7 +134,7 @@ if mode == "Recruiter View":
     st.divider()
     st.subheader("Upload a Candidate Resume for Scoring")
     up = st.file_uploader("Upload TXT or PDF", type=["txt", "pdf"])
-    candidate_name = st.text_input("Candidate Name", value="Aisha Khan")
+    candidate_name = st.text_input("Candidate Name", value="Samay Raina")
 
     if "last_score" not in st.session_state:
         st.session_state.last_score = None
@@ -176,8 +176,8 @@ else:
 
     col1, col2 = st.columns(2)
     with col1:
-        your_name = st.text_input("Your Name", value="Aisha Khan")
-        your_email = st.text_input("Email", value="aisha@example.com")
+        your_name = st.text_input("Your Name", value="Samay Raina")
+        your_email = st.text_input("Email", value="samay@damac.com")
         resume = st.file_uploader("Upload your resume (TXT or PDF)", type=["txt", "pdf"], key="cand_up")
         note = st.text_area("Tell us briefly why you’re excited about this role")
         st.caption("Tip: try the sample at sample_data/sample_resume.txt")
