@@ -6,19 +6,19 @@ from pathlib import Path
 # ---------- Page config ----------
 st.set_page_config(
     page_title="EMAAR | AI + Concierge Hiring",
-    page_icon="assets/emaar-logo.png",
+    page_icon="assets/emaar-logo.png",   # favicon is fine to keep
     layout="wide"
 )
 
-# ---------- Brand CSS (gold + beige) ----------
+# ---------- Theme tweaks / CSS ----------
 st.markdown("""
 <style>
-/* More breathing room at the very top so nothing looks cut */
+/* extra breathing space at the very top */
 .block-container { padding-top: 3.0rem; }
 
 /* headings + divider */
 h1, h2, h3 { color: #2B2B2B; }
-hr.gold { border: 0; border-top: 2px solid #D4AF37; margin: 0.5rem 0 1.0rem 0; }
+hr.gold { border: 0; border-top: 2px solid #D4AF37; margin: 0.5rem 0 1rem 0; }
 
 /* buttons */
 .stButton>button {
@@ -31,30 +31,30 @@ hr.gold { border: 0; border-top: 2px solid #D4AF37; margin: 0.5rem 0 1.0rem 0; }
 
 /* inputs */
 textarea, .stTextInput input { background: #FFFFFF !important; border-radius: 10px !important; }
-
-/* make sure header image never visually clips */
-.emaar-header img { display: block; padding-top: 6px; }  /* small top padding prevents perceived cropping */
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- Header (logo + title in one line) ----------
-LOGO_HEIGHT = 68  # <— increase/decrease to change logo size (e.g., 60–90)
+# ---------- Robust logo + title ----------
+from pathlib import Path
+APP_DIR = Path(__file__).parent
+LOGO_PATH = APP_DIR / "assets" / "emaar-logo.png"   # <- exact path
+LOGO_HEIGHT = 72                                     # <- change this to resize
 
-st.markdown(
-    f"""
-    <div class="emaar-header" style="display:flex; align-items:center; gap:16px;">
-      <img src="assets/emaar-logo.png" height="{LOGO_HEIGHT}">
-      <div>
-        <h2 style="margin:0; color:#2B2B2B;">AI + Concierge Hiring</h2>
-        <div style="margin-top:2px; color:#6b6b6b;">
-          Hospitality-grade candidate experience with transparent, auditable scoring.
-        </div>
-      </div>
-    </div>
-    <hr class="gold"/>
-    """,
-    unsafe_allow_html=True
-)
+col_logo, col_title = st.columns([1, 6], vertical_alignment="center")
+with col_logo:
+    if LOGO_PATH.exists():
+        st.image(str(LOGO_PATH), use_column_width=False, output_format="PNG", clamp=False, width=None)
+        # If you prefer to control by height, comment the line above and use:
+        # st.image(str(LOGO_PATH), use_column_width=False, output_format="PNG")
+        # Streamlit doesn't have a direct 'height' param; use width for scaling or a smaller source image.
+    else:
+        st.caption("Logo not found at assets/emaar-logo.png")
+
+with col_title:
+    st.markdown("## AI + Concierge Hiring")
+    st.caption("Hospitality-grade candidate experience with transparent, auditable scoring.")
+
+st.markdown("<hr class='gold'/>", unsafe_allow_html=True)
 
 # ---------- Helpers ----------
 def clean_text(x: str) -> str:
