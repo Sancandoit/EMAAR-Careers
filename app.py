@@ -76,9 +76,7 @@ def bias_check_panel():
 # ----------------------------
 # Sidebar
 # ----------------------------
-# LOGO ADDED HERE
-st.sidebar.image("emaar.png") 
-st.sidebar.title("AI + Concierge Hiring")
+st.sidebar.title("EMAAR | AI + Concierge Hiring")
 mode = st.sidebar.radio("Choose a view", ["Recruiter View", "Candidate View"])
 st.sidebar.caption("A hospitality-grade candidate experience with transparent, auditable scoring.")
 
