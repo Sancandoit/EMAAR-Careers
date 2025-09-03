@@ -5,12 +5,6 @@ from datetime import datetime, timedelta
 
 st.set_page_config(page_title="EMAAR | AI + Concierge Hiring", page_icon="✨", layout="wide")
 
-# Inside your app.layout
-
-html.Div([
-    html.Img(src='assets/emaar-logo.png', style={'height':'100px', 'width':'auto', 'marginBottom':'25px'}),
-    # ... rest of your layout
-])
 # ----------------------------
 # Helpers
 # ----------------------------
