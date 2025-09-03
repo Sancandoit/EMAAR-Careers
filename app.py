@@ -15,6 +15,7 @@ st.set_page_config(
     page_icon="assets/emaar-logo.png",
     layout="wide"
 )
+
 # === SESSION STATE FOR LOGGING & ANALYTICS ===
 if "audit_log" not in st.session_state:
     st.session_state.audit_log = pd.DataFrame(
@@ -38,19 +39,14 @@ textarea, .stTextInput input { background:#FFFFFF !important; border-radius:10px
 """, unsafe_allow_html=True)
 
 # ---------- Robust logo + title without deprecated flag ----------
-from pathlib import Path
 APP_DIR = Path(__file__).parent
 LOGO_PATH = APP_DIR / "assets" / "emaar-logo.png"
-
-# Option A: fixed width that looks good on laptops
 LOGO_WIDTH = 180
 
 col_logo, col_title = st.columns([1, 6], vertical_alignment="center")
 with col_logo:
     if LOGO_PATH.exists():
-        st.image(str(LOGO_PATH), width=LOGO_WIDTH)        # no use_column_width here
-        # If you prefer it to grow to the column size, use the next line instead:
-        # st.image(str(LOGO_PATH), use_container_width=True)
+        st.image(str(LOGO_PATH), width=LOGO_WIDTH)
     else:
         st.caption("Logo not found at assets/emaar-logo.png")
 
@@ -122,6 +118,46 @@ def bias_check_panel():
     st.checkbox("No protected attributes used in scoring.", value=True)
     st.checkbox("Candidate experience SLAs set for response and feedback.", value=True)
 
+# === PDF CONFIRMATION GENERATOR (Candidate View) ===
+def build_confirmation_pdf(candidate_name: str, slot: str, role_title: str) -> bytes:
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
+    width, height = A4
+
+    # Header band
+    c.setFillColorRGB(0.96, 0.94, 0.88)  # light beige band
+    c.rect(0, height - 2.2*cm, width, 2.2*cm, fill=1, stroke=0)
+    # Title
+    c.setFillColorRGB(0.17, 0.17, 0.17)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(2*cm, height - 1.5*cm, "EMAAR Talent Concierge — Call Confirmation")
+
+    y = height - 3.2*cm
+    c.setFont("Helvetica", 11)
+    c.drawString(2*cm, y, f"Candidate: {candidate_name}")
+    y -= 0.8*cm
+    c.drawString(2*cm, y, f"Role: {role_title}")
+    y -= 0.8*cm
+    c.drawString(2*cm, y, f"Scheduled Slot: {slot}")
+    y -= 1.2*cm
+
+    c.setFont("Helvetica", 10)
+    text = (
+        "Thank you for choosing a concierge call. This brief conversation will outline the role, "
+        "highlight your strengths, and answer any questions you have. You will receive the next steps after the call."
+    )
+    c.drawString(2*cm, y, text)
+    y -= 1.2*cm
+
+    # Footer
+    c.setFont("Helvetica-Oblique", 9)
+    c.drawString(2*cm, 1.5*cm, "This confirmation is for demonstration purposes. © EMAAR (demo)")
+
+    c.showPage()
+    c.save()
+    buf.seek(0)
+    return buf.getvalue()
+
 # ---------- Sidebar ----------
 st.sidebar.title("Navigation")
 mode = st.sidebar.radio("Choose a view", ["Recruiter View", "Candidate View"])
@@ -164,21 +200,101 @@ if mode == "Recruiter View":
     up = st.file_uploader("Upload TXT or PDF", type=["txt", "pdf"])
     candidate_name = st.text_input("Candidate Name", value="Aisha Khan")
 
+    # === 2) Emiratisation flag ===
+    is_emirati = st.checkbox("Candidate is a UAE National (Emirati)", value=False)
+    if is_emirati:
+        st.info("This candidate counts toward Emiratisation targets for skilled roles.")
+
+    # === 3 & 4) Compute, personalize, and log ===
     if st.button("Compute Fit Score"):
         text = read_uploaded_file(up)
         if not text:
             st.warning("Please upload a resume.")
         else:
             total, details = keyword_score(text, criteria_input)
+
+            # Build matched list for personalization + log
+            matched = []
+            for d in details:
+                if d["matched"]:
+                    matched.append(f"{d['criterion']} ({', '.join(d['matched'])})")
+
+            # Display results
             st.metric("Fit Score", f"{total} / 100")
             st.markdown("**Explainability**")
             st.code(explainability(details))
-            top_strengths = [d["criterion"] for d in details if d["matched"]][:3] or ["service mindset"]
+
+            # 4) Personalized concierge script (top 2 strengths)
+            top_two = [d["criterion"] for d in details if d["matched"]][:2] or ["service mindset"]
             st.markdown("**Concierge Call Script**")
-            st.code(concierge_script(candidate_name, role_title, top_strengths))
+            st.code(concierge_script(candidate_name, role_title, top_two))
+
+            # 3) Bias & Audit tracker: append log row
+            criteria_weights = {c["name"]: c["weight"] for c in criteria_input}
+            candidate_id = hashlib.md5(
+                f"{candidate_name}{datetime.utcnow().isoformat()}".encode()
+            ).hexdigest()[:8]
+
+            new_row = {
+                "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
+                "candidate_id": candidate_id,
+                "candidate_name": candidate_name,
+                "is_emirati": bool(is_emirati),
+                "role_title": role_title,
+                "fit_score": float(total),
+                "matched_criteria": "; ".join(matched) if matched else "None",
+                "criteria_weights_json": str(criteria_weights),
+            }
+
+            st.session_state.audit_log = pd.concat(
+                [st.session_state.audit_log, pd.DataFrame([new_row])],
+                ignore_index=True
+            )
 
     st.markdown("### Ethics & Audit")
     bias_check_panel()
+
+    # 3) Audit log viewer + CSV download
+    with st.expander("Bias & Audit Tracker (view log)"):
+        if len(st.session_state.audit_log) == 0:
+            st.caption("No entries yet.")
+        else:
+            st.dataframe(st.session_state.audit_log, use_container_width=True)
+            csv_bytes = st.session_state.audit_log.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "Download CSV log",
+                data=csv_bytes,
+                file_name="emaar_hiring_audit_log.csv",
+                mime="text/csv"
+            )
+
+    # 6) Recruiter analytics
+    st.markdown("### Recruiter Analytics")
+    log = st.session_state.audit_log.copy()
+    if len(log) == 0:
+        st.caption("No analytics yet. Score a few candidates first.")
+    else:
+        # Buckets for scores
+        bins = [0, 30, 60, 100]
+        labels = ["0–30%", "30–60%", "60–100%"]
+        log["score_bucket"] = pd.cut(log["fit_score"], bins=bins, labels=labels, include_lowest=True)
+
+        colA, colB, colC = st.columns(3)
+        with colA:
+            st.metric("Total candidates", len(log))
+        with colB:
+            st.metric("Emirati candidates", int(log["is_emirati"].sum()))
+        with colC:
+            pct_emirati = 100 * log["is_emirati"].mean() if len(log) else 0
+            st.metric("Emirati share", f"{pct_emirati:.0f}%")
+
+        st.caption("Score distribution")
+        dist = log["score_bucket"].value_counts().reindex(labels, fill_value=0)
+        st.bar_chart(dist)
+
+        st.caption("Average score by Emiratisation flag")
+        avg_by_flag = log.groupby("is_emirati")["fit_score"].mean().rename({False: "Non-Emirati", True: "Emirati"})
+        st.bar_chart(avg_by_flag)
 
 # ----------------------------
 # Candidate View
@@ -208,3 +324,12 @@ else:
         else:
             st.success(f"Thank you, {your_name}! Your EMAAR Talent Concierge call is booked for {slot}.")
             st.info("You’ll receive a confirmation with a brief call agenda.")
+
+            # 5) Generate confirmation PDF and offer download
+            pdf_bytes = build_confirmation_pdf(your_name, slot, role_title="Guest Experience Supervisor")
+            st.download_button(
+                "Download confirmation PDF",
+                data=pdf_bytes,
+                file_name=f"{your_name.replace(' ', '_')}_Concierge_Confirmation.pdf",
+                mime="application/pdf"
+            )
