@@ -15,6 +15,14 @@ st.set_page_config(
     page_icon="assets/emaar-logo.png",
     layout="wide"
 )
+# === SESSION STATE FOR LOGGING & ANALYTICS ===
+if "audit_log" not in st.session_state:
+    st.session_state.audit_log = pd.DataFrame(
+        columns=[
+            "timestamp", "candidate_id", "candidate_name", "is_emirati",
+            "role_title", "fit_score", "matched_criteria", "criteria_weights_json"
+        ]
+    )
 
 # ---------- Brand CSS ----------
 st.markdown("""
