@@ -175,4 +175,36 @@ if mode == "Recruiter View":
             st.code(explainability(details))
             top_strengths = [d["criterion"] for d in details if d["matched"]][:3] or ["service mindset"]
             st.markdown("**Concierge Call Script**")
-            st.code(concierge_script(candidate_name, role_title, top_strength
+            st.code(concierge_script(candidate_name, role_title, top_strengths))
+
+    st.markdown("### Ethics & Audit")
+    bias_check_panel()
+
+# ----------------------------
+# Candidate View
+# ----------------------------
+else:
+    st.subheader("Candidate Experience")
+    st.write("Welcome to the EMAAR Talent Concierge. We blend efficiency with a world-class human experience.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        your_name = st.text_input("Your Name", value="Aisha Khan")
+        resume = st.file_uploader("Upload resume", type=["txt", "pdf"], key="cand_up")
+        note = st.text_area("Why are you excited about this role?")
+        st.caption("Tip: try the sample at sample_data/sample_resume.txt")
+
+    with col2:
+        st.markdown("**Concierge Scheduling**")
+        slots = mock_timeslots()
+        slot = st.selectbox("Choose a call slot", slots)
+        st.write("• Warm 15–25 minute conversation")
+        st.write("• Clarity on next steps")
+        st.write("• Your questions answered")
+
+    if st.button("Submit"):
+        if not your_name or not resume:
+            st.warning("Please enter your name and upload a resume.")
+        else:
+            st.success(f"Thank you, {your_name}! Your EMAAR Talent Concierge call is booked for {slot}.")
+            st.info("You’ll receive a confirmation with a brief call agenda.")
