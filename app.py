@@ -3,11 +3,64 @@ import re
 import io
 from datetime import datetime, timedelta
 
-st.set_page_config(page_title="EMAAR | AI + Concierge Hiring", page_icon="✨", layout="wide")
+# ---------- Page config ----------
+st.set_page_config(
+    page_title="EMAAR | AI + Concierge Hiring",
+    page_icon="assets/emaar.png",   # uses your logo as favicon
+    layout="wide"
+)
 
-# ----------------------------
-# Helpers
-# ----------------------------
+# ---------- Brand CSS (gold + beige) ----------
+st.markdown("""
+<style>
+/* overall bg already set by Streamlit theme; refine spacing */
+.block-container { padding-top: 1rem; }
+
+/* headings + dividers */
+h1, h2, h3 { color: #2B2B2B; }
+hr.gold { border: 0; border-top: 2px solid #D4AF37; margin: 0.5rem 0 1rem 0; }
+
+/* buttons */
+.stButton>button {
+  background: #D4AF37;
+  color: #2B2B2B;
+  border: 0;
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+}
+.stButton>button:hover { filter: brightness(0.95); }
+
+/* metric cards */
+[data-testid="stMetric"] {
+  background: #F2E8D5;
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+/* text inputs + file uploader */
+textarea, .stTextInput input {
+  background: #FFFFFF !important;
+  border-radius: 10px !important;
+}
+
+/* sidebar title color tweak */
+section[data-testid="stSidebar"] h2, 
+section[data-testid="stSidebar"] h1 {
+  color: #2B2B2B;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- Header with logo ----------
+header_col1, header_col2 = st.columns([1, 6])
+with header_col1:
+    st.image("assets/emaar.png")
+with header_col2:
+    st.markdown("## AI + Concierge Hiring")
+    st.caption("Hospitality-grade candidate experience with transparent, auditable scoring.")
+st.markdown("<hr class='gold'/>", unsafe_allow_html=True)
+
+# ---------- Helpers ----------
 def clean_text(x: str) -> str:
     return re.sub(r"\s+", " ", x or "").strip().lower()
 
@@ -30,10 +83,6 @@ def read_uploaded_file(uploaded_file) -> str:
         return ""
 
 def keyword_score(text, criteria):
-    """
-    criteria: list of dicts [{name, weight, keywords: [..]}]
-    returns: total_score (0-100), details list
-    """
     text_l = clean_text(text)
     total = 0.0
     details = []
@@ -73,23 +122,18 @@ def bias_check_panel():
     st.checkbox("No protected attributes used in scoring.", value=True)
     st.checkbox("Candidate experience SLAs set for response and feedback.", value=True)
 
-# ----------------------------
-# Sidebar
-# ----------------------------
-st.sidebar.title("EMAAR | AI + Concierge Hiring")
+# ---------- Sidebar ----------
+st.sidebar.title("Navigation")
 mode = st.sidebar.radio("Choose a view", ["Recruiter View", "Candidate View"])
-st.sidebar.caption("A hospitality-grade candidate experience with transparent, auditable scoring.")
 
-# ----------------------------
-# Recruiter View
-# ----------------------------
+# ---------- Recruiter View ----------
 if mode == "Recruiter View":
-    st.title("Recruiter Console")
+    st.subheader("Recruiter Console")
     st.write("Define the job, set weighted criteria, upload resumes, and generate an explainable fit score plus a concierge call script.")
 
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("Job Description")
+        st.markdown("**Job Description**")
         role_title = st.text_input("Role Title", value="Guest Experience Supervisor")
         jd_text = st.text_area(
             "Paste Job Description",
@@ -100,101 +144,35 @@ if mode == "Recruiter View":
         st.caption("Tip: try the sample at sample_data/sample_jd.txt")
 
     with col2:
-        st.subheader("Weighted Criteria")
+        st.markdown("**Weighted Criteria**")
         criteria_input = [
-            {
-                "name": "Customer Empathy",
-                "weight": st.number_input("Customer Empathy (0-100)", 0.0, 100.0, 30.0, 1.0),
-                "keywords": ["customer empathy", "guest experience", "service excellence", "hospitality"]
-            },
-            {
-                "name": "Arabic / Multilingual",
-                "weight": st.number_input("Arabic / Multilingual (0-100)", 0.0, 100.0, 20.0, 1.0),
-                "keywords": ["arabic", "bilingual", "multilingual"]
-            },
-            {
-                "name": "Retail/Hospitality Ops",
-                "weight": st.number_input("Retail/Hospitality Ops (0-100)", 0.0, 100.0, 20.0, 1.0),
-                "keywords": ["retail operations", "hospitality operations", "pos", "store operations", "front office", "front desk"]
-            },
-            {
-                "name": "Stakeholder Management",
-                "weight": st.number_input("Stakeholder Mgmt (0-100)", 0.0, 100.0, 15.0, 1.0),
-                "keywords": ["stakeholder management", "cross-functional", "influencing", "vendor management"]
-            },
-            {
-                "name": "Analytics & Reporting",
-                "weight": st.number_input("Analytics (0-100)", 0.0, 100.0, 15.0, 1.0),
-                "keywords": ["excel", "analytics", "reporting", "dashboard", "kpi"]
-            }
+            {"name": "Customer Empathy", "weight": st.number_input("Customer Empathy", 0.0, 100.0, 30.0, 1.0),
+             "keywords": ["customer empathy", "guest experience", "service excellence", "hospitality"]},
+            {"name": "Arabic / Multilingual", "weight": st.number_input("Arabic / Multilingual", 0.0, 100.0, 20.0, 1.0),
+             "keywords": ["arabic", "bilingual", "multilingual"]},
+            {"name": "Retail/Hospitality Ops", "weight": st.number_input("Retail/Hospitality Ops", 0.0, 100.0, 20.0, 1.0),
+             "keywords": ["retail operations", "hospitality operations", "pos", "front office"]},
+            {"name": "Stakeholder Management", "weight": st.number_input("Stakeholder Mgmt", 0.0, 100.0, 15.0, 1.0),
+             "keywords": ["stakeholder management", "cross-functional", "vendor management"]},
+            {"name": "Analytics & Reporting", "weight": st.number_input("Analytics & Reporting", 0.0, 100.0, 15.0, 1.0),
+             "keywords": ["excel", "analytics", "reporting", "dashboard", "kpi"]}
         ]
-        total_weight = sum([c["weight"] for c in criteria_input])
-        st.caption(f"Total weight: {total_weight:.0f} (tip: aim near 100)")
+        st.caption(f"Total weight: {sum([c['weight'] for c in criteria_input]):.0f}")
 
-    st.divider()
-    st.subheader("Upload a Candidate Resume for Scoring")
+    st.markdown("<hr class='gold'/>", unsafe_allow_html=True)
+    st.markdown("**Upload a Candidate Resume for Scoring**")
     up = st.file_uploader("Upload TXT or PDF", type=["txt", "pdf"])
-    candidate_name = st.text_input("Candidate Name", value="Samay Raina")
+    candidate_name = st.text_input("Candidate Name", value="Aisha Khan")
 
-    if "last_score" not in st.session_state:
-        st.session_state.last_score = None
-        st.session_state.last_details = []
-        st.session_state.last_script = ""
-
-    colA, colB = st.columns([1,1])
-    with colA:
-        if st.button("Compute Fit Score"):
-            text = read_uploaded_file(up)
-            if not text:
-                st.warning("Please upload a readable resume file.")
-            else:
-                total, details = keyword_score(text, criteria_input)
-                st.session_state.last_score = total
-                st.session_state.last_details = details
-                top_strengths = [d["criterion"] for d in details if d["matched"]][:3] or ["service mindset"]
-                st.session_state.last_script = concierge_script(candidate_name, role_title, top_strengths)
-
-        if st.session_state.last_score is not None:
-            st.metric("Fit Score", f"{st.session_state.last_score} / 100")
-            st.markdown("**Explainability**")
-            st.code(explainability(st.session_state.last_details))
-            st.markdown("**Concierge Call Script (auto-generated)**")
-            st.code(st.session_state.last_script)
-
-    with colB:
-        st.markdown("### Ethics & Audit")
-        bias_check_panel()
-
-    st.caption("This is a transparent, rules-based demo. In production, add secure storage, assessments, and interview scheduling integrations.")
-
-# ----------------------------
-# Candidate View
-# ----------------------------
-else:
-    st.title("Candidate Experience")
-    st.write("Welcome to the EMAAR Talent Concierge. We blend efficiency with a world-class human experience.")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        your_name = st.text_input("Your Name", value="Samay Raina")
-        your_email = st.text_input("Email", value="samay@damac.com")
-        resume = st.file_uploader("Upload your resume (TXT or PDF)", type=["txt", "pdf"], key="cand_up")
-        note = st.text_area("Tell us briefly why you’re excited about this role")
-        st.caption("Tip: try the sample at sample_data/sample_resume.txt")
-
-    with col2:
-        st.markdown("**Concierge Scheduling**")
-        slots = mock_timeslots()
-        slot = st.selectbox("Choose a call slot", slots)
-        st.markdown("**What to expect**")
-        st.write("• A warm, 15–25 minute conversation")
-        st.write("• Clarity on next steps")
-        st.write("• Your questions answered")
-
-    if st.button("Submit"):
-        if not your_name or not resume:
-            st.warning("Please enter your name and upload a resume.")
+    if st.button("Compute Fit Score"):
+        text = read_uploaded_file(up)
+        if not text:
+            st.warning("Please upload a resume.")
         else:
-            st.success(f"Thank you, {your_name}! Your EMAAR Talent Concierge call is booked for {slot}.")
-            st.info("You’ll receive a confirmation with a brief call agenda. We look forward to meeting you.")
-    st.caption("This demo keeps data local during the session for classroom use.")
+            total, details = keyword_score(text, criteria_input)
+            st.metric("Fit Score", f"{total} / 100")
+            st.markdown("**Explainability**")
+            st.code(explainability(details))
+            top_strengths = [d["criterion"] for d in details if d["matched"]][:3] or ["service mindset"]
+            st.markdown("**Concierge Call Script**")
+            st.code(concierge_script(candidate_name, role_title, top_strength
