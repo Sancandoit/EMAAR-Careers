@@ -1,20 +1,20 @@
 import streamlit as st
-import re
-import io
+import re, io
 from datetime import datetime, timedelta
+from pathlib import Path
 
 # ---------- Page config ----------
 st.set_page_config(
     page_title="EMAAR | AI + Concierge Hiring",
-    page_icon="assets/emaar.png",   # uses your logo as favicon
+    page_icon="assets/emaar-logo.png",  # favicon uses the same logo
     layout="wide"
 )
 
 # ---------- Brand CSS (gold + beige) ----------
 st.markdown("""
 <style>
-/* overall bg already set by Streamlit theme; refine spacing */
-.block-container { padding-top: 1rem; }
+/* Add a little more top padding so the header never looks cut */
+.block-container { padding-top: 2.25rem; }
 
 /* headings + dividers */
 h1, h2, h3 { color: #2B2B2B; }
@@ -37,7 +37,7 @@ hr.gold { border: 0; border-top: 2px solid #D4AF37; margin: 0.5rem 0 1rem 0; }
   padding: 0.75rem;
 }
 
-/* text inputs + file uploader */
+/* inputs */
 textarea, .stTextInput input {
   background: #FFFFFF !important;
   border-radius: 10px !important;
@@ -52,12 +52,19 @@ section[data-testid="stSidebar"] h1 {
 """, unsafe_allow_html=True)
 
 # ---------- Header with logo ----------
+logo_path = Path("assets/emaar-logo.png")
 header_col1, header_col2 = st.columns([1, 6])
+
 with header_col1:
-    st.image("assets/emaar.png")
+    if logo_path.exists():
+        st.image(str(logo_path), width=140)
+    else:
+        st.caption("Logo not found at assets/emaar-logo.png")
+
 with header_col2:
     st.markdown("## AI + Concierge Hiring")
     st.caption("Hospitality-grade candidate experience with transparent, auditable scoring.")
+
 st.markdown("<hr class='gold'/>", unsafe_allow_html=True)
 
 # ---------- Helpers ----------
