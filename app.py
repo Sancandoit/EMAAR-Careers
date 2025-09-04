@@ -1,13 +1,14 @@
-import streamlit as st
 import re, io
-import pandas as pd
 import hashlib
 from io import BytesIO
+from datetime import datetime, timedelta
+from pathlib import Path
+
+import pandas as pd
+import streamlit as st
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
-from datetime import datetime, timedelta
-from pathlib import Path
 
 # ---------- Page config ----------
 st.set_page_config(
@@ -75,6 +76,21 @@ def read_uploaded_file(uploaded_file) -> str:
     # Fallback to UTF-8 decode
     try:
         return data.decode("utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+def read_local_file(path: Path) -> str:
+    if not path.exists():
+        return ""
+    if path.suffix.lower() == ".pdf":
+        try:
+            from pdfminer.high_level import extract_text
+            with open(path, "rb") as f:
+                return extract_text(f) or ""
+        except Exception:
+            return ""
+    try:
+        return path.read_text(encoding="utf-8", errors="ignore")
     except Exception:
         return ""
 
@@ -158,6 +174,43 @@ def build_confirmation_pdf(candidate_name: str, slot: str, role_title: str) -> b
     buf.seek(0)
     return buf.getvalue()
 
+# ---------- Utility: compute + render + log ----------
+def render_candidate_result(candidate_name: str, role_title: str, criteria_input, text: str, is_emirati=False):
+    total, details = keyword_score(text, criteria_input)
+
+    # Display
+    st.metric("Fit Score", f"{total} / 100")
+    st.markdown("**Explainability**")
+    st.code(explainability(details))
+
+    # Personalized concierge script (top 2 strengths)
+    top_two = [d["criterion"] for d in details if d["matched"]][:2] or ["service mindset"]
+    st.markdown("**Concierge Call Script**")
+    st.code(concierge_script(candidate_name, role_title, top_two))
+
+    # Audit log
+    matched = []
+    for d in details:
+        if d["matched"]:
+            matched.append(f"{d['criterion']} ({', '.join(d['matched'])})")
+    criteria_weights = {c["name"]: c["weight"] for c in criteria_input}
+    candidate_id = hashlib.md5(f"{candidate_name}{datetime.utcnow().isoformat()}".encode()).hexdigest()[:8]
+    new_row = {
+        "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
+        "candidate_id": candidate_id,
+        "candidate_name": candidate_name,
+        "is_emirati": bool(is_emirati),
+        "role_title": role_title,
+        "fit_score": float(total),
+        "matched_criteria": "; ".join(matched) if matched else "None",
+        "criteria_weights_json": str(criteria_weights),
+    }
+    st.session_state.audit_log = pd.concat(
+        [st.session_state.audit_log, pd.DataFrame([new_row])],
+        ignore_index=True
+    )
+    return total
+
 # ---------- Sidebar ----------
 st.sidebar.title("Navigation")
 mode = st.sidebar.radio("Choose a view", ["Recruiter View", "Candidate View"])
@@ -205,51 +258,34 @@ if mode == "Recruiter View":
     if is_emirati:
         st.info("This candidate counts toward Emiratisation targets for skilled roles.")
 
-    # === 3 & 4) Compute, personalize, and log ===
+    # === Primary scoring path (manual upload) ===
     if st.button("Compute Fit Score"):
         text = read_uploaded_file(up)
         if not text:
             st.warning("Please upload a resume.")
         else:
-            total, details = keyword_score(text, criteria_input)
+            render_candidate_result(candidate_name, role_title, criteria_input, text, is_emirati=is_emirati)
 
-            # Build matched list for personalization + log
-            matched = []
-            for d in details:
-                if d["matched"]:
-                    matched.append(f"{d['criterion']} ({', '.join(d['matched'])})")
+    # === Demo: Aisha vs Armaan (built-in samples) ===
+    st.markdown("### Quick Demo: Score our sample resumes")
+    demo_col1, demo_col2 = st.columns(2)
+    with demo_col1:
+        if st.button("Demo: Score Aisha (Hospitality fit)"):
+            aisha_path = APP_DIR / "sample_data" / "Aisha_Khan_Resume.pdf"
+            aisha_text = read_local_file(aisha_path)
+            if not aisha_text:
+                st.error("Aisha_Khan_Resume.pdf not found in sample_data/.")
+            else:
+                render_candidate_result("Aisha Khan", role_title, criteria_input, aisha_text, is_emirati=True)
 
-            # Display results
-            st.metric("Fit Score", f"{total} / 100")
-            st.markdown("**Explainability**")
-            st.code(explainability(details))
-
-            # 4) Personalized concierge script (top 2 strengths)
-            top_two = [d["criterion"] for d in details if d["matched"]][:2] or ["service mindset"]
-            st.markdown("**Concierge Call Script**")
-            st.code(concierge_script(candidate_name, role_title, top_two))
-
-            # 3) Bias & Audit tracker: append log row
-            criteria_weights = {c["name"]: c["weight"] for c in criteria_input}
-            candidate_id = hashlib.md5(
-                f"{candidate_name}{datetime.utcnow().isoformat()}".encode()
-            ).hexdigest()[:8]
-
-            new_row = {
-                "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
-                "candidate_id": candidate_id,
-                "candidate_name": candidate_name,
-                "is_emirati": bool(is_emirati),
-                "role_title": role_title,
-                "fit_score": float(total),
-                "matched_criteria": "; ".join(matched) if matched else "None",
-                "criteria_weights_json": str(criteria_weights),
-            }
-
-            st.session_state.audit_log = pd.concat(
-                [st.session_state.audit_log, pd.DataFrame([new_row])],
-                ignore_index=True
-            )
+    with demo_col2:
+        if st.button("Demo: Score Armaan (Non-fit)"):
+            armaan_path = APP_DIR / "sample_data" / "Armaan_Satish_Resume.pdf"
+            armaan_text = read_local_file(armaan_path)
+            if not armaan_text:
+                st.error("Armaan_Satish_Resume.pdf not found in sample_data/.")
+            else:
+                render_candidate_result("Armaan Satish", role_title, criteria_input, armaan_text, is_emirati=False)
 
     st.markdown("### Ethics & Audit")
     bias_check_panel()
